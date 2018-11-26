@@ -1,0 +1,130 @@
+---
+title: "EDA - P3"
+author: "Charlie Heller and Jyoti Tyagi"
+date: "November 25, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Final Project, P3 - Exploratory Data Analysis
+
+
+#### Finsish tidying data
+Per instructor feedback (pasted below) there are a few tweaks left that we need to make in order to tidy our data. We'll address these points first, then conduct our EDA
+
+Good start, but you missed a couple important points: 
+
+1) Your data is not yet tidy. Tidy means one observation per row, not one subject with a number of similar observations. As the data is currently formatted, it will be impossible for you to use the tidy or infer pipelines to explore or analyze your data. You'll need to "gather" the many columns into something approximately like:
+
+        subject_id, pre_or_post, decorated_or_sparse, lesson, [distraction_type], result
+
+Note: It's reasonable to leave the test scores and time-off-task in two tables, since the time-off-task has many subtypes. However, you may need to merge them (after tidying and summarizing) for some of your analyses.
+
+2) In addition, you should be using the raw data, dropping any summary columns or tables and re-creating them (if needed) using the raw data and R. This would also result in a much shorter code book.
+
+##### Tidy the data
+We'll start by loading the data. We'll use the same function (defined below) from our last submission to read this back in.
+
+* First, load libraries
+```{r echo=TRUE, eval=TRUE}
+library(readxl)
+library(tidyverse)
+```
+
+* define loading function
+```{r echo=TRUE, eval=TRUE}
+read_excel_allsheets <- function(filename, tibble = TRUE) {
+    sheets <- readxl::excel_sheets(filename)
+    x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X, skip=2))
+    if(!tibble) x <- lapply(x, as.data.frame)
+    names(x) <- sheets
+    x
+}
+```
+
+* load the data
+```{r echo=TRUE, eval=TRUE}
+data_tables <- read_excel_allsheets(here::here("Data", "vis_att_data.xlsx"))
+```
+
+* okay, now we've loaded the data into a list of dataframes. The first dataframe is the codebook, and the second is the summary table - as per instructor feedback, let's forget about those for now and work on tidying the raw data.
+
+
+* The raw data (list elements 3 through 6) contains 1) pre and post test scores for each lesson and each classroom condition and 2) the total time spent off task for each of the classroom conditions/lessons, divided based on the type of off task behvior (self-distraction, peer distraction etc.).
+
+* Because the list of options for time off task is so cumbersome, let's create two tidy data frames, one for test scores and one for total time off task. We'll first work on the test scores.
+
+First, tidy each separately. Use leave condition as the "lesson" column. No need to parse the string.
+```{r echo=TRUE, eval=TRUE}
+pre_df <- 
+  janitor::clean_names(data_tables$`Pre-Test Scores by Lesson`) %>%
+  select(-number, -x_1) %>%
+  gather(condition, score, pre_test_plate_tectonics_sparse_classroom:total_pre_test_scores_decorated_classroom) %>%
+  mutate(pre.post = ifelse(stringr::str_detect(condition, 'pre'), "pre", "post")) %>%
+  mutate(sparse.decorated = ifelse(stringr::str_detect(condition, 'sparse'), "sparse", ifelse(stringr::str_detect(condition, 'decorated'), "decorated", NA)))
+head(pre_df)
+```
+
+```{r echo=TRUE, eval=TRUE}
+post_df <- 
+  janitor::clean_names(data_tables$`Post-Test Scores by Lesson`) %>%
+  select(-number, -x_1) %>%
+  gather(condition, score, post_test_plate_tectonics_sparse_classroom:total_post_test_scores_decorated_classroom) %>%
+  mutate(pre.post = ifelse(stringr::str_detect(condition, 'pre'), "pre", "post")) %>%
+  mutate(sparse.decorated = ifelse(stringr::str_detect(condition, 'sparse'), "sparse", ifelse(stringr::str_detect(condition, 'decorated'), "decorated", NA)))
+head(post_df)
+```
+
+Now, concatenate the pre and post test results
+```{r echo=TRUE, eval=TRUE}
+test_scores_df <- 
+  rbind(pre_df, post_df)
+head(test_scores_df)
+```
+
+Finally, let's again replace "absent" entries with NA
+
+```{r echo=TRUe, eval=TRUE}
+test_scores_df[test_scores_df=="Absent"] = NA
+test_scores_df[test_scores_df=="absent"] = NA
+```
+
+Cool, now we've got a tidy data frame for our test scores. Note, that if we wanted to perform some sort of summary only over a given lesson, we'd use string logic on the column "condition" to effectivley pull only one lesson out.
+
+Let's save this as a csv to tidy_raw_test_scores.
+```{r echo=TRUE, eval=TRUE}
+readr::write_csv(test_scores_df, here::here("Data", "tidy_raw_test_scores.csv"))
+```
+
+
+Now, let's do the same for the time spent off task.
+```{r echo=TRUe, eval=TRUE}
+sparse_df <- janitor::clean_names(data_tables$`TOT by Lesson Sparse condition`) %>%
+  select(-number, -x_1) %>%
+  gather(condition, score, plate_tec_self:sparse_total_time_off_task) %>%
+  mutate(sparse.decorated = "sparse") %>%
+  mutate(category = ifelse(stringr::str_detect(condition, 'self'), 'self', ifelse(stringr::str_detect(condition, 'peer'), 'peer', ifelse(stringr::str_detect(condition, 'environment'), 'envr', ifelse(stringr::str_detect(condition, 'other'), 'other', 'tot')))))
+
+decorated_df <- janitor::clean_names(data_tables$`TOT by Lesson Decorated cond.`) %>%
+  select(-number, -x_1) %>%
+  gather(condition, score, stone_tools_self:decorated_total_time_off_task) %>%
+  mutate(sparse.decorated = "decorated") %>%
+   mutate(category = ifelse(stringr::str_detect(condition, 'self'), 'self', ifelse(stringr::str_detect(condition, 'peer'), 'peer', ifelse(stringr::str_detect(condition, 'environment'), 'envr', ifelse(stringr::str_detect(condition, 'other'), 'other', 'tot')))))
+
+time_off_task_df <- rbind(sparse_df, decorated_df)
+
+time_off_task_df[time_off_task_df=="Absent"] = NA
+time_off_task_df[time_off_task_df=="absent"] = NA
+
+head(time_off_task_df)
+
+readr::write_csv(time_off_task_df, here::here("Data", "tidy_raw_time_off_task.csv"))
+```
+
+
+
+
+
