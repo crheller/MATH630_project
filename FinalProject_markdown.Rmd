@@ -77,4 +77,21 @@ for (df in 2:length(data_tables)) {
 tidy_data$`Summary Data File`$`Sparse-TimeSelfDistr`
 data_tables$`Summary Data File`$`Sparse-TimeSelfDistr`
 ```
-Nice, we see that we've replace all values of "absent" or "Absent" with NA. This is really all our data needed to tidy.
+Nice, we see that we've replaced all values of "absent" or "Absent" with NA. This is really all our data needed to tidy. We'll save it into our data folder for later use.
+
+```{r echo=TRUE, eval=TRUE}
+library(xlsx)
+for (sheet in 1:length(tidy_data)) {
+  name <- names(tidy_data[sheet])
+  if (sheet==1){
+  write.xlsx(get(name, tidy_data), here::here("Data/tidy_vis_data.xlsx"), sheetName=name)
+  } else {
+    wb <- loadWorkbook(here::here("Data/tidy_vis_data.xlsx"))
+    sheet <- createSheet(wb, sheetName = name)
+
+    addDataFrame(get(name, tidy_data), sheet, startRow=1, startColumn=1,
+                 colnames=names(names(get(name, tidy_data))))
+    saveWorkbook(wb, here::here("Data/tidy_vis_data.xlsx"))
+  }
+}
+```
