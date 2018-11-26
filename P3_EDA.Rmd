@@ -92,6 +92,12 @@ test_scores_df[test_scores_df=="Absent"] = NA
 test_scores_df[test_scores_df=="absent"] = NA
 ```
 
+Remove the participant (15) who was excluded from analyses due to absences
+```{r echo=TRUE, eval=TRUE}
+test_scores_df <- test_scores_df %>%
+  filter(stringr::str_detect(id, "cs15")==FALSE)
+```
+
 Cool, now we've got a tidy data frame for our test scores. Note, that if we wanted to perform some sort of summary only over a given lesson, we'd use string logic on the column "condition" to effectivley pull only one lesson out.
 
 Let's save this as a csv to tidy_raw_test_scores.
@@ -116,8 +122,13 @@ decorated_df <- janitor::clean_names(data_tables$`TOT by Lesson Decorated cond.`
 
 time_off_task_df <- rbind(sparse_df, decorated_df)
 
-time_off_task_df[time_off_task_df=="Absent"] = NA
-time_off_task_df[time_off_task_df=="absent"] = NA
+time_off_task_df[time_off_task_df=="Absent"] <- NA
+time_off_task_df[time_off_task_df=="absent"] <- NA
+time_off_task_df[time_off_task_df=="Abent"] <- NA
+
+# remove participant 15 who was absent and excluded from analyses
+time_off_task_df <- time_off_task_df %>%
+  filter(stringr::str_detect(id, "cs15")==FALSE)
 
 head(time_off_task_df)
 
@@ -125,6 +136,72 @@ readr::write_csv(time_off_task_df, here::here("Data", "tidy_raw_time_off_task.cs
 ```
 
 
+* alright, now that we've tidied the data, let's (re)load the tidy dataframe and perform our EDA
 
+### Exploratory Data Analysis
 
+First, load the data
 
+```{r echo=TRUE, eval=TRUE}
+test_scores <- dplyr::as_tibble(read.csv(here::here("Data", "tidy_raw_test_scores.csv")))
+off_task <- dplyr::as_tibble(read.csv(here::here("Data", "tidy_raw_time_off_task.csv")))
+```
+
+###### 1) Issues encountered with the data
+There weren't really any big issues. Some entries were listed as absent. During our data tidying, we converted these to NA to help us handle these cases smoothly with R. Also, the column names (now condition variable) are a little messy. It took a little work to parse them in order to make them more neat and construct atidy data frame. In particular, it's really a pain to parse them in order to get the lesson title out. This shouldn't be too much of an issue, however. We can use string matching from the pacakage `stringr` on the column "condition" if we wish to pull out data for one particular lesson.
+
+###### 2) Descriptive statistics from the paper
+
+* the first descriptive statistic reported is the mean age of the children (5.37 years) as well as the number of male (12) and female (12) students. The raw data provided does not allow us to reproduce these summaries. In addition, we cannot reproduce the summaries of the student's demographic (race/ethnicity) information. However, we can confirm that the total number of participants was 24.
+
+```{r echo=TRUE, eval=TRUE}
+# there are 24 disitninct study participants
+length(unique(off_task$id))
+```
+We only get 23 here because we have already removed the student who was exlcluded from analyses due to absences in the tidying step.
+
+* The next notable summary statistic reported is the mean pre-test score. This is reported to be 22.7%. We can confirm this.
+
+```{r echo=TRUE, eval=TRUE}
+test_scores %>%
+  filter((pre.post=="pre") & (stringr::str_detect(condition, "tot")==FALSE)) %>%
+  summarize(mean_pre_test_score = 100*mean(score))
+```
+
+* For many of the anlayses in the paper, the authors present descriptive visualizations/summaries, then they quantify the differences they observe with statistical tests. We'll leave the quanitifcation for later (P4), but walk through the descriptive visualizations here.
+
+* First, we'll repoduce the stats/figures for time off task as a function of classroom condition graph
+
+The authors state that overall, children were on task 66.5% percent of the time. Let's confirm this without using the reported totals by the authors.
+
+```{r echo=TRUE, eval=TRUE}
+mean_tof <- 
+  off_task %>%
+  na.omit() %>%
+  group_by(sparse.decorated, category) %>%
+  select(score) %>%
+  mutate(score = as.numeric(as.character(score))) %>%
+  summarize(means = mean(score), se = sd(score)/sqrt(length(score))) %>%
+  filter(category!="tot")
+
+# time ON-task across both conditions
+1 - 0.5 * (sum(filter(mean_tof, sparse.decorated=='decorated')$means) + sum(filter(mean_tof, sparse.decorated=='sparse')$means))
+```
+As reported, students are ON task for about 66.4 percent of the time. we're not sure why this isn't coming out to exactly 66.5 as reported. Further, we see that the time off task is quite different for the two groups:
+
+```{r echo=TRUE, eval=TRUE}
+# time of task decorated
+sum(filter(mean_tof, sparse.decorated=='decorated')$means)
+
+# time of task sparse
+sum(filter(mean_tof, sparse.decorated=='sparse')$means)
+```
+Again, these summaries stats don't exactly match those reported in the paper(38.58 and 28.42, respectively). Not sure why this is happening.
+
+Finally, we can reporduce the summary plot for this:
+```{r echo=TRUE, eval=TRUE}
+ggplot(mean_tof, aes(x=category, y=means)) + geom_bar(stat="identity") + facet_grid(~sparse.decorated) + 
+  geom_errorbar(aes(ymin=means-se, ymax=means+se),
+                size=.3,
+                width=.2)
+```
