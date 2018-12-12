@@ -1,0 +1,533 @@
+---
+title: "Replication/extension report"
+author: "Charlie Heller"
+date: "December 5, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Final Project, P4 - Replication/extension report
+
+```{r echo=TRUE}
+library(readxl)
+library(effsize)
+library(tidyverse)
+```
+
+
+### Exploratory Data Analysis
+
+First, load the data
+
+```{r echo=TRUE, eval=TRUE}
+test_scores <- dplyr::as_tibble(read.csv(here::here("Data", "tidy_raw_test_scores.csv")))
+off_task <- dplyr::as_tibble(read.csv(here::here("Data", "tidy_raw_time_off_task.csv")))
+```
+
+#### 1) Issues encountered with the data
+There weren't really any big issues. Some entries were listed as absent. During our data tidying, we converted these to NA to help us handle these cases smoothly with R. Also, the column names (now condition variable) are a little messy. It took a little work to parse them in order to make them more neat and construct atidy data frame. In particular, it's really a pain to parse the test scores in order to get the lesson title out, so we only did this for time off task. This shouldn't be too much of an issue, however. We can use string matching from the pacakage `stringr` on the column `condition` if we really wish to pull out data for one particular lesson.
+
+#### 2) Descriptive statistics from the paper (and additional ones as necessary)
+
+* The first descriptive statistic reported is the mean age of the children (5.37 years) as well as the number of male (12) and female (12) students. The raw data provided does not allow us to reproduce these summaries. In addition, we cannot reproduce the summaries of the student's demographic (race/ethnicity) information. However, we can confirm that the total number of participants was 24.
+
+```{r echo=TRUE, eval=TRUE}
+# there are 24 disitninct study participants
+length(unique(off_task$id))
+```
+We only get 23 here because we have already removed the student who was exlcluded from analyses due to absences in the tidying step.
+
+* The next notable summary statistic reported is the mean pre-test score. This is reported to be 22.7%. We can confirm this.
+
+```{r echo=TRUE, eval=TRUE}
+test_scores %>%
+  filter((pre.post=="pre")) %>%
+  summarize(mean_pre_test_score = 100*mean(score))
+```
+
+* For many of the anlayses in the paper, the authors present descriptive visualizations/summaries, then they quantify the differences they observe with statistical tests. We'll leave the quanitifcation for later (P4), but walk through the descriptive visualizations here.
+
+* First, we'll repoduce the stats/figures for time off task as a function of classroom condition graph
+
+The authors state that overall, children were on task 66.5% percent of the time. Let's confirm this without using the reported totals by the authors.
+
+```{r echo=TRUE, eval=TRUE}
+mean_tof <- 
+  off_task %>%
+  na.omit() %>%
+  group_by(sparse.decorated, category) %>%
+  mutate(score = as.numeric(as.character(score))) %>%
+  summarize(means = mean(score), se = sd(score)/sqrt(length(score)))
+
+# time ON-task across both conditions
+100*(1 - 0.5 * (sum(filter(mean_tof, sparse.decorated=='decorated')$means) + sum(filter(mean_tof, sparse.decorated=='sparse')$means)))
+```
+As reported, students are ON task for about 66.3 percent of the time. We're not sure why this isn't coming out to exactly 66.5 as reported. 
+
+Further, we see that the time off task is quite different for the two groups:
+
+```{r echo=TRUE, eval=TRUE}
+# time of task decorated
+100*sum(filter(mean_tof, sparse.decorated=='decorated')$means)
+
+# time of task sparse
+100*sum(filter(mean_tof, sparse.decorated=='sparse')$means)
+```
+Again, these summaries stats don't exactly match those reported in the paper(38.58 and 28.42, respectively). Not sure why exactly why this is happening.
+
+Finally, we can reproduce the summary plot for this, where time off task is split into each of its categories:
+```{r echo=TRUE, eval=TRUE}
+ggplot(mean_tof, aes(x=category, y=100*means)) + geom_bar(stat="identity") + facet_grid(~sparse.decorated) + 
+  geom_errorbar(aes(ymin=100*(means-se), ymax=100*(means+se)),
+                size=.3,
+                width=.2)
+```
+
+* Next, the authors address pre- and post-test scores for both learning environments. They claim that the pre-test scores are statistically equivalent for the two environments (mean = .22 and mean = .23). They also claim that for the post test scores, there is a difference (.55 vs. mean = .42)
+
+```{r echo=TRUE, eval=TRUE}
+test_scores %>%
+  select(score, pre.post, sparse.decorated) %>%
+  na.omit() %>%
+  group_by(pre.post, sparse.decorated) %>%
+  summarize(means = 100*mean(score))
+```
+
+We see that again, this does seem to be the case. However, again our numbers are slightly different than the author's reported figures and it's unclear exactly why. Though, the difference is extremely small and is altogether not overly concerning. Perhaps it is due to a rounding error/discrepancy at some point in the data processing.
+
+Though the authors don't include this, as part of an EDA exploring this relationship we might like to make a plot something like the following:
+
+```{r echo=TRUE, eval=TRUE}
+ts <- test_scores %>%
+  na.omit()
+ggplot2::ggplot(ts, aes(x=pre.post, y=100*score, color=sparse.decorated)) + geom_boxplot()
+```
+
+* Finally the authors investigate the relationship between time spent off task and learning. To do this, they first report the correlation between the mean post test scores and time off task. Therefore, they averaged each child's time off task and each child's post test score in the decorated/sparse conditions, ran the correlation, and found a negative correlation of -0.5. We repeat this analysis here along with the scatter plot visualization of this relationship that they present in the paper.
+
+```{r echo=TRUE, eval=TRUE}
+# calculate the mean time off task overall by student id. This involves a couple of steps
+
+# first, calculate total time off task in decorated condition
+tot_time_off_task_dec <- off_task %>%
+  filter(sparse.decorated=="decorated") %>%
+  select(id, category, score) %>%
+  group_by(id, category) %>%
+  na.omit() %>%
+  summarize(means=mean(score)) %>%
+  summarize(sums=100*sum(means))
+
+# next, calculate the total time off task in the sparse condition
+tot_time_off_task_spar <- off_task %>%
+  filter(sparse.decorated=="sparse") %>%
+  select(id, category, score) %>%
+  group_by(id, category) %>%
+  na.omit() %>%
+  summarize(means=mean(score)) %>%
+  summarize(sums=100*sum(means))
+
+# Finally, compute the mean time off task overall
+mean_time_off_task <- dplyr::left_join(tot_time_off_task_spar, tot_time_off_task_dec, by="id") %>%
+  group_by(id) %>%
+  summarize(means=mean(c(sums.x, sums.y)))
+# calculate the mean post-test score 
+mean_post_test_scores <- test_scores %>%
+  filter(pre.post=="post") %>%
+  select(id, score) %>%
+  group_by(id) %>%
+  na.omit() %>%
+  summarize(means=100*mean(score))
+
+# merge the two dataframes on id to make sure the values are matched correctly
+df_merged <- dplyr::left_join(mean_post_test_scores, mean_time_off_task, by="id")
+
+# plot the data and let ggpairs compute the correlation
+df_merged %>% 
+  select(means.y, means.x) %>%
+  rename(mean_post_test_scores=means.y, mean_time_off_task=means.x) %>%
+  GGally::ggpairs()
+```
+
+We see that there is clearly a negative relationship between the two variables, however, we notice a couple of differences in our results compared with those reported in the paper. 
+
+* Firstly, we see a stronger correlation (-0.54) than the authors report (-0.5)
+
+* Secondly, we noticed that it seems like the authors mislabeled the x and y axis of their scatter plot. We have corrected that in our plot above.
+
+It is important to note, we don't think the discrepancy in our results is due to an error in calculations made on our part. In fact, we double-checked and found that our totals computed above agree exactly with the totals reported in the data file that came with the paper. Therefore, it is quite puzzling why we see this difference and it's unclear exactly what was plotted by the authors.
+
+#### 3) Issues identified with the data
+As discussed throughout the EDA above, we noticed that many of our values did not match exactly with those reported in the paper. This is strange. We explictly went back and check that the totals/summaries calculated with our R code match those reported in the author's data exactly. Therefore, it's unclear at this point exactly why we see a discrepancy between our statistics and theirs.
+
+That being said, all the trends the author's observed are very clearly present in our analysis and most of the discrepancies we observed were extrememly minor and could potentially be attributed to numerical rounding differences between our approach and theirs. The only potential worrying point is the very last part of the EDA in which our correlation, and graph, appear notably different than what the author's report. Again, we checked that the values reported by the authors (in the publicly available summary data) match exaclty with the data we are plotting and presenting above, thus we don't think this is due to an error in our analysis. That being said, the trend we observe is clearly the same as what's presented in the paper so big picture-wise, this shouldn't dramatically affect our ability to reproduce/evaluate their result moving forward, but it's definitely worth being aware of.
+
+
+### Replication of paper statistics and extensions
+
+In the exploratory data analysis above, we re-made all of the figures from the paper and listed some summary stastics that were reported by the authors as well. We left the more "rigourous" statistical tests for this section, and will address them here. We will also replot each figure as necessary to make it easier to follow along.
+
+We noted, wen reading the paper, that the authros depedned heavily on the useof ttests, which ssume normality in thedata, however, their sample size was quite snak. In order to validate their results, we will include, at each point a ttest is used, a non-parametric alternatice (a wilcoxon ranksum test) in order to either corrabate or condtradict their reported signficance finding.
+
+The following section is organized with the headings from the results section of the paper so that it's made easier to follow.
+
+#### Effect of classroom type on time spent off task
+
+The first result reported in the paper is that time off task is signficantly greater for the decorated classroom than the sparse classroom on average. Specifically, the authors state: "The overall percentage of instructional time spent off task was significantly greater when children were in the decorated classroom (M = 38.58%, SD = 10.49) than when they were in the sparse classroom
+(M = 28.42%, SD = 13.19), paired-sample t(22) = 4.90, p < .0001; this effect was large, Cohen’s d = 0.85."
+
+This result is illustrated indirectly in Figure 4 of the paper, where the split up off task percentage into each group. We replicate this below (as well as above).
+
+```{r echo=TRUE, eval=TRUE}
+ggplot(mean_tof, aes(x=category, y=100*means)) + geom_bar(stat="identity") + facet_grid(~sparse.decorated) + 
+  geom_errorbar(aes(ymin=100*(means-se), ymax=100*(means+se)),
+                size=.3,
+                width=.2)
+```
+
+In order to repeat the statistcal test the authors run, we compare across all groups (i.e. not faceted into the separate categories of time of task).
+
+```{r echo=TRUE, eval=TRUE}
+dec_off_task <- off_task %>%
+  na.omit() %>%
+  filter(sparse.decorated=="decorated") %>%
+  mutate(condition_=paste(stringr::str_split(condition, "_")[[1]][1], stringr::str_split(condition, "_")[[1]][2], sep="")) %>%
+  group_by(condition_,  category,  id) %>%
+  summarize(tot1=mean(score)) %>%
+  group_by(category, id) %>%
+  summarize(tot2=sum(tot1)) %>%
+  group_by(id) %>%
+  summarize(tot3 = sum(tot2))
+
+sparse_off_task <- off_task %>%
+  na.omit() %>%
+  filter(sparse.decorated=="sparse") %>%
+  mutate(condition_=paste(stringr::str_split(condition, "_")[[1]][1], stringr::str_split(condition, "_")[[1]][2], sep="")) %>%
+  group_by(condition_,  category,  id) %>%
+  summarize(tot1=mean(score)) %>%
+  group_by(category, id) %>%
+  summarize(tot2=sum(tot1)) %>%
+  group_by(id) %>%
+  summarize(tot3 = sum(tot2))
+  
+t.test(dec_off_task$tot3, sparse_off_task$tot3, paired = TRUE, alternative = "two.sided")
+```
+
+Let's also double check to make sure we have the correct means/sd in each group
+
+```{r echo=TRUE, eval=TRUE}
+dec_off_task %>%
+  summarise(mean=mean(tot3),
+            sd=sd(tot3))
+sparse_off_task %>%
+  summarise(mean=mean(tot3),
+            sd=sd(tot3))
+```
+
+Indeed, we see that the difference in the overall time spent off task for the two classroom categories is signficantly different by the paired t-test and p < 0.0001 and the means/ sd of each group is the same as reported in the paper. Now, let's confirm, the effect size reported with Cohen's *d*.
+
+```{r echo=TRUE, eval=TRUE}
+cohen.d(dec_off_task$tot3, sparse_off_task$tot3, paired=FALSE)
+```
+
+In order to get the Cohen's d to match the paper, you must set paired=FALSE. I'm not sure this is correct given the paired nature of the data and the way they did a paired t-test. If you instead paired=TRUE, you get an even larger effect. Therefore, this doesn't change the interpetation of the paper, but is worth noting nontheless.
+
+```{r echo=TRUE, eval=TRUE}
+cohen.d(dec_off_task$tot3, sparse_off_task$tot3, paired=TRUE)
+```
+
+###### Extension
+Finally, let's run a paried wilcoxon to test if the result hold for a nonparametric test
+```{r echo=TRUE, eval=TRUE}
+wilcox.test(dec_off_task$tot3, sparse_off_task$tot3, paired=TRUE)
+```
+Nice, we see that the results are consitent for the nonparametric test.
+
+
+The authors next calculated a difference score to make sure the results weren't driven by just a couple of hypersensitive participants. this was calculated as the percent time off task in the sparsecondition minus the time in the decorated condition. They found the following: "Difference scores ranged from 2% to 36%, with a mean of 17% (SD = 9). Few children (n = 3, 13% of the sample) had difference scores below 10% and thus presumably were minimally affected by the visual displays in the decorated classroom. However, most children (n = 20, 87% of the sample) had difference scores that exceeded 10%, which is contrary to the possibility that the observed effects were driven by a minority of participants"
+
+```{r echo=TRUE, eval=TRUE}
+dif_scores <- dplyr::left_join(dec_off_task, sparse_off_task, by="id") %>%
+  mutate(diff = (1-tot3.y) -(1-tot3.x))
+
+ggplot(dif_scores, aes(x=diff)) + geom_histogram()
+
+dif_scores %>%
+  summarize(mean=mean(diff),
+            sd = sd(diff),
+            minimum = min(diff),
+            maximum = max(diff))
+```
+Interestingly, we don't reprroduce their resutls here.not sure what's going on...
+
+
+Next the autors compare time off task faceted by subtype. They find the folliwng: "In the sparse-classroom condition, the children
+spent only 3.21% of instructional time engaged in environmental distractions, whereas in the decoratedclassroom condition, they spent 20.56% of instructional time engaged in environmental distractions; this difference was significant, paired-sample t(22) = 8.78, p < .0001, and the effect was large, Cohen’s d = −2.60."
+
+We confrim:
+
+```{r echo=TRUE, eval=TRUE}
+dec_off_task_envr <- off_task %>%
+  na.omit() %>%
+  filter(sparse.decorated=="decorated") %>%
+  mutate(condition_=paste(stringr::str_split(condition, "_")[[1]][1], stringr::str_split(condition, "_")[[1]][2], sep="")) %>%
+  group_by(condition_,  category,  id) %>%
+  summarize(tot1=mean(score)) %>%
+  filter(category=="envr") %>%
+  group_by(id) %>%
+  summarize(tot2 = sum(tot1))
+
+sparse_off_task_envr <- off_task %>%
+  na.omit() %>%
+  filter(sparse.decorated=="sparse") %>%
+  mutate(condition_=paste(stringr::str_split(condition, "_")[[1]][1], stringr::str_split(condition, "_")[[1]][2], sep="")) %>%
+  group_by(condition_,  category,  id) %>%
+  summarize(tot1=mean(score)) %>%
+  filter(category=="envr") %>%
+  group_by(id) %>%
+  summarize(tot2 = sum(tot1))
+
+by_envr <- dplyr::left_join(dec_off_task_envr, sparse_off_task_envr, by="id") %>%
+  summarize(mean_dec = mean(tot2.x),
+            mean_sprase =  mean(tot2.y))
+by_envr
+
+# perform t test
+t.test(dec_off_task_envr$tot2, sparse_off_task_envr$tot2, paired=TRUE)
+
+# and cohen's d
+cohen.d(dec_off_task_envr$tot2, sparse_off_task_envr$tot2, paired=FALSE)
+```
+
+Note that again with the Cohen's d, we must set `paried=False` in order to get the author's result. In this case, if we set `paired=TRUE` we get a smaller (butstill large) effect size.
+
+```{r echo=TRUE, eval=TRUE}
+cohen.d(dec_off_task_envr$tot2, sparse_off_task_envr$tot2, paired=TRUE)
+```
+
+##### Extension
+
+Again, we test with wilcoxon as well
+```{r echo=TRUE, eval=TRUE}
+wilcox.test(dec_off_task_envr$tot2, sparse_off_task_envr$tot2, paired=TRUE)
+```
+Again, the non-paramteric test holds up.
+
+To conclude this section the authors state: "children spent significantly more time engaging in self-distraction and peer distraction in the sparse classroom than they did in the decorated classroom, both paired-sample ts(22) > 2.75, ps < .012"
+
+```{r echo=TRUE, eval=TRUE}
+dec_off_task_self <- off_task %>%
+  na.omit() %>%
+  filter(sparse.decorated=="decorated") %>%
+  mutate(condition_=paste(stringr::str_split(condition, "_")[[1]][1], stringr::str_split(condition, "_")[[1]][2], sep="")) %>%
+  group_by(condition_,  category,  id) %>%
+  summarize(tot1=mean(score)) %>%
+  filter(category=="self") %>%
+  group_by(id) %>%
+  summarize(tot2 = sum(tot1))
+
+sparse_off_task_self <- off_task %>%
+  na.omit() %>%
+  filter(sparse.decorated=="sparse") %>%
+  mutate(condition_=paste(stringr::str_split(condition, "_")[[1]][1], stringr::str_split(condition, "_")[[1]][2], sep="")) %>%
+  group_by(condition_,  category,  id) %>%
+  summarize(tot1=mean(score)) %>%
+  filter(category=="self") %>%
+  group_by(id) %>%
+  summarize(tot2 = sum(tot1))
+
+# perform t test
+#t.test(dec_off_task_self$tot2, sparse_off_task_self$tot2, paired=TRUE)
+
+dec_off_task_peer <- off_task %>%
+  na.omit() %>%
+  filter(sparse.decorated=="decorated") %>%
+  mutate(condition_=paste(stringr::str_split(condition, "_")[[1]][1], stringr::str_split(condition, "_")[[1]][2], sep="")) %>%
+  group_by(condition_,  category,  id) %>%
+  summarize(tot1=mean(score)) %>%
+  filter(category=="peer") %>%
+  group_by(id) %>%
+  summarize(tot2 = sum(tot1))
+
+sparse_off_task_peer <- off_task %>%
+  na.omit() %>%
+  filter(sparse.decorated=="sparse") %>%
+  mutate(condition_=paste(stringr::str_split(condition, "_")[[1]][1], stringr::str_split(condition, "_")[[1]][2], sep="")) %>%
+  group_by(condition_,  category,  id) %>%
+  summarize(tot1=mean(score)) %>%
+  filter(category=="peer") %>%
+  group_by(id) %>%
+  summarize(tot2 = sum(tot1))
+
+# perform t test
+#t.test(dec_off_task_peer$tot2, sparse_off_task_peer$tot2, paired=TRUE)
+
+t.test(dec_off_task_self$tot2, sparse_off_task_self$tot2, paired=TRUE)
+```
+
+this is all summarized in the plot shown above.
+
+##### Extension
+```{r echo=TRUE, eval=TRUE}
+wilcox.test(dec_off_task_self$tot2, sparse_off_task_self$tot2, paired=TRUE)
+
+wilcox.test(dec_off_task_peer$tot2, sparse_off_task_peer$tot2, paired=TRUE)
+```
+Again, results are consistent with t test.
+
+#### Effect of classroom type on learning
+
+In this section the autiors explore the ffect of classroom type on the studen'ts ability to learn by analyzing pre an post experiment test scores. As a first pass, they confirm that there was no pre-existing difference in the poopulation by comparing just pre-test scores: "Pretest accuracy was statistically equivalent in the sparse classroom condition (M = 22%) and the decorated-classroom condition (M = 23%), paired-samples t(22) < 1, and accuracy in both conditions was not different from chance, both one-sample ts (22) < 1.3, ps > .21"
+
+Wihtout more information aboutt he test structure, we can't cofirm that performance was equal to chance level. However, we con confirm the first part of this statement by the authors:
+
+```{r echo=TRUE, eval=TRUE}
+sp_pre_scores <- test_scores %>%
+  filter(pre.post=="pre") %>%
+  filter(sparse.decorated=="sparse")
+dec_pre_scores <- test_scores %>%
+  filter(pre.post=="pre") %>%
+  filter(sparse.decorated=="decorated")
+pre_scores <- dplyr::left_join(sp_pre_scores, dec_pre_scores, by="id") %>%
+  summarize(mean_sp = mean(score.x),
+            mean_dec = mean(score.y))
+pre_scores
+
+# do ttest:
+t.test(sp_pre_scores$score, dec_pre_scores$score, paired=TRUE)
+```
+
+##### Extension
+```{r echo=TRUE, eval=TRUE}
+wilcox.test(sp_pre_scores$score, dec_pre_scores$score, paired=TRUE)
+```
+Again ,nonparametrix consistent
+
+Next, the authors show that post test scores were significantly higher than pre-test scores regardless of condition: "children’s posttest scores were significantly higher than their pretest scores in both experimental conditions, both paired-samples ts(22) > 4.72, ps ≤ .0001.
+
+
+```{r echo=TRUE, eval=TRUE}
+pre <- test_scores %>%
+  na.omit() %>%
+  filter(pre.post=="pre") %>%
+  group_by(id) %>%
+  summarize(m = mean(score))
+
+post <- test_scores %>%
+  na.omit() %>%
+  filter(pre.post=="post") %>%
+  group_by(id) %>%
+  summarize(m = mean(score))
+
+scores_overall <- dplyr::left_join(pre, post, by="id")
+
+t.test(scores_overall$m.y, scores_overall$m.x, paired=TRUE)
+```
+
+##### Extension
+```{r echo=TRUE, eval=TRUE}
+wilcox.test(scores_overall$m.y, scores_overall$m.x, paired=TRUE)
+```
+
+consitent.
+  
+The punch line of this section is that there was a difference in pre/post test scores for the decorated vs. sparse condtions: "However, their learning scores were higher in the sparse-classroom condition (M = 55%) than in the decorated-classroom condition (M = 42%), paired-samples t(22) = 2.95, p = .007; this effect was of medium size, Cohen’s d = 0.65"
+
+```{r echo=TRUE, eval=TRUE}
+post_dec <- test_scores %>%
+  na.omit() %>%
+  filter(pre.post=="post" & sparse.decorated=="decorated") %>%
+  group_by(id) %>%
+  summarize(m = mean(score))
+
+post_sparse <- test_scores %>%
+  na.omit() %>%
+  filter(pre.post=="post" & sparse.decorated=="sparse") %>%
+  group_by(id) %>%
+  summarize(m = mean(score))
+
+post_scores <- dplyr::left_join(post_dec, post_sparse, by="id") %>%
+  summarize(mean_dec = mean(m.x),
+            mean_sparse = mean(m.y))
+#post_scores
+
+# tttest
+t.test(post_sparse$m, post_dec$m, paired=TRUE)
+
+# cohens d
+cohen.d(post_sparse$m, post_dec$m,  paried=TRUE)
+```
+
+##### Extension
+```{r echo=TRUE, eval=TRUE}
+wilcox.test(post_sparse$m, post_dec$m, paired=TRUE)
+```
+Here, consitentsy would depend on our alpha level, which the authors don't specifically state. We're signigicant at the 0.05 level but not at 0.01.
+
+
+Finally, they compute a gain score (difference in pre/post), and repeat the analysis: "Pairwise comparisons indicated that the children’s learning gains were higher in the sparse-classroom condition (M = 33%, SD = 22) than in the decorated-classroom condition (M = 18%, SD = 19), paired-sample t(22) = 3.49, p = .002, Cohen’s d = 0.73"
+
+```{r echo=TRUE, eval=TRUE}
+pre_dec<- test_scores %>%
+  na.omit() %>%
+  filter(pre.post=="pre" & sparse.decorated=="decorated") %>%
+  group_by(id) %>%
+  summarize(m = mean(score))
+pre_sparse <- test_scores %>%
+  na.omit() %>%
+  filter(pre.post=="pre" & sparse.decorated=="sparse") %>%
+  group_by(id) %>%
+  summarize(m = mean(score))
+
+gain_scores <- dplyr::left_join(pre_dec, pre_sparse, by="id") %>%
+                                  dplyr::left_join(post_dec, by="id") %>%
+                                  dplyr::left_join(post_sparse, by="id") %>%
+  mutate(dec_gain = m.x.x - m.x,
+         sp_gain = m.y.y - m.y)
+
+gain_scores %>%
+  summarize(mean_dec_gain = mean(dec_gain), 
+            sd_dec_gain = sd(dec_gain), 
+            mean_sp_gain = mean(sp_gain), 
+            sd_sp_gain = sd(sp_gain))
+
+# run ttest
+t.test(gain_scores$sp_gain, gain_scores$dec_gain, paired=TRUE)
+
+#effect size
+cohen.d(gain_scores$sp_gain, gain_scores$dec_gain, paired=TRUE)
+```
+
+##### Extension
+```{r echo=TRUE, eval=TRUE}
+wilcox.test(gain_scores$sp_gain, gain_scores$dec_gain, paired=TRUE)
+```
+
+Again, results here are consistent.
+
+#### The relation between time spent off task and learning
+
+first they just look at the relationshi[ between total time spent off task and post test scores as a measure of whether the two variables are related. They find: "Children who spent more time off task tended to have
+lower learning scores, r = −.500, p = .015
+
+To confirm this we first report the correlation, then create a linear model to determine the significance of the relationship. Recall that we created this graph in our EDA so we already have the necessary variables
+```{r echo=TRUE, eval=TRUE}
+cor(mean_time_off_task$means, mean_post_test_scores$means)
+
+model <- lm(mean_time_off_task$means ~ mean_post_test_scores$means)
+summary(model)
+```
+
+##### Extension
+
+there's not exactly a wilcoxon equivalent for slope testing as far as I'm aware. So, we'll instead use a shuffle test to validate this result.
+
+
+
+Indeed we find a negative and signifcant relationship between the two variables.
+
+### Extension
+
+We noted that much of the analyses here depended on parametric assumptions (i.e. normality for t-tests). however, their sample sizes were quite small, so we thoguht a goo extension would be to run some non-parametric tests on make sure that the signficanc values eported in the paper hold up. In particular,e 
