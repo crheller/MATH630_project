@@ -11,16 +11,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Final Project, P4 - Replication/extension report
 
-```{r echo=TRUE}
+```{r echo=TRUE, message=FALSE}
 library(readxl)
 library(effsize)
 library(tidyverse)
 ```
 
-
 ### Exploratory Data Analysis
 
-First, load the data
+First, load the data. Here, we simply load the data that we've previously tidied. In order to see how this was done (in its final form) please see the code contained in the file "P3_EDA.Rmd". This code tidies the data and caches it locally into our data folder, from which we load it here for the exploratory data analysis
 
 ```{r echo=TRUE, eval=TRUE}
 test_scores <- dplyr::as_tibble(read.csv(here::here("Data", "tidy_raw_test_scores.csv")))
@@ -167,9 +166,9 @@ That being said, all the trends the author's observed are very clearly present i
 
 ### Replication of paper statistics and extensions
 
-In the exploratory data analysis above, we re-made all of the figures from the paper and listed some summary stastics that were reported by the authors as well. We left the more "rigourous" statistical tests for this section, and will address them here. We will also replot each figure as necessary to make it easier to follow along.
+In the exploratory data analysis above, we re-made all of the figures from the paper (except one) and listed some summary stastics that were reported by the authors as well. We left the more "rigourous" statistical tests for this section (and the last plot which is more directly related to some of these tests), and will address them here. We will also replot each figure as necessary to make it easier to follow along.
 
-We noted, wen reading the paper, that the authros depedned heavily on the useof ttests, which ssume normality in thedata, however, their sample size was quite snak. In order to validate their results, we will include, at each point a ttest is used, a non-parametric alternatice (a wilcoxon ranksum test) in order to either corrabate or condtradict their reported signficance finding.
+We noted, when reading the paper, that the authors depended heavily on the use of ttests, which are paramteric tests that assume normality in the data. However, the sample size of the data in this paper was quite small making it difficult to determine if their data did in fact come from a normal distribution. In order to validate their results, we will include, at each point a ttest is used, a non-parametric alternative (namely, a Wilcoxon Ranksum test or a shuffle test, where apprpriate) in order to either corrabate or condtradict their reported signficance finding.
 
 The following section is organized with the headings from the results section of the paper so that it's made easier to follow.
 
@@ -178,7 +177,7 @@ The following section is organized with the headings from the results section of
 The first result reported in the paper is that time off task is signficantly greater for the decorated classroom than the sparse classroom on average. Specifically, the authors state: "The overall percentage of instructional time spent off task was significantly greater when children were in the decorated classroom (M = 38.58%, SD = 10.49) than when they were in the sparse classroom
 (M = 28.42%, SD = 13.19), paired-sample t(22) = 4.90, p < .0001; this effect was large, Cohen’s d = 0.85."
 
-This result is illustrated indirectly in Figure 4 of the paper, where the split up off task percentage into each group. We replicate this below (as well as above).
+This result is illustrated indirectly in Figure 3 of the paper, where the authors split up off task percentage into each group. We replicate this below (as well as above).
 
 ```{r echo=TRUE, eval=TRUE}
 ggplot(mean_tof, aes(x=category, y=100*means)) + geom_bar(stat="identity") + facet_grid(~sparse.decorated) + 
@@ -226,44 +225,52 @@ sparse_off_task %>%
             sd=sd(tot3))
 ```
 
-Indeed, we see that the difference in the overall time spent off task for the two classroom categories is signficantly different by the paired t-test and p < 0.0001 and the means/ sd of each group is the same as reported in the paper. Now, let's confirm, the effect size reported with Cohen's *d*.
+Indeed, we see that the difference in the overall time spent off task for the two classroom categories is signficantly different by the paired t-test and p < 0.0001 and the means/sd of each group are the same as reported in the paper. Now, let's confirm, the effect size reported with Cohen's *d*.
 
 ```{r echo=TRUE, eval=TRUE}
 cohen.d(dec_off_task$tot3, sparse_off_task$tot3, paired=FALSE)
 ```
 
-In order to get the Cohen's d to match the paper, you must set paired=FALSE. I'm not sure this is correct given the paired nature of the data and the way they did a paired t-test. If you instead paired=TRUE, you get an even larger effect. Therefore, this doesn't change the interpetation of the paper, but is worth noting nontheless.
+In order to get the Cohen's d to match the paper, we must set paired=FALSE. We're not sure this is correct given the paired nature of the data and given that they chose to perform a paired t-test. If you instead set paired=TRUE, you get an even larger effect as measured with Cohen's *d*. Therefore, this doesn't change the interpetation of the paper, but is worth noting nontheless.
 
 ```{r echo=TRUE, eval=TRUE}
 cohen.d(dec_off_task$tot3, sparse_off_task$tot3, paired=TRUE)
 ```
 
 ###### Extension
-Finally, let's run a paried wilcoxon to test if the result hold for a nonparametric test
+Finally, we will run a paried Wilcoxon to test if the result holds for a nonparametric test
 ```{r echo=TRUE, eval=TRUE}
 wilcox.test(dec_off_task$tot3, sparse_off_task$tot3, paired=TRUE)
 ```
 Nice, we see that the results are consitent for the nonparametric test.
 
 
-The authors next calculated a difference score to make sure the results weren't driven by just a couple of hypersensitive participants. this was calculated as the percent time off task in the sparsecondition minus the time in the decorated condition. They found the following: "Difference scores ranged from 2% to 36%, with a mean of 17% (SD = 9). Few children (n = 3, 13% of the sample) had difference scores below 10% and thus presumably were minimally affected by the visual displays in the decorated classroom. However, most children (n = 20, 87% of the sample) had difference scores that exceeded 10%, which is contrary to the possibility that the observed effects were driven by a minority of participants"
+The authors next calculated a difference score to make sure the results weren't driven by just a couple of hypersensitive participants. this was calculated as the percent spent attending the environment in the decorated condition minus the percent of time spent attending the environment in the sparse condition. They found the following: "Difference scores ranged from 2% to 36%, with a mean of 17% (SD = 9). Few children (n = 3, 13% of the sample) had difference scores below 10% and thus presumably were minimally affected by the visual displays in the decorated classroom. However, most children (n = 20, 87% of the sample) had difference scores that exceeded 10%, which is contrary to the possibility that the observed effects were driven by a minority of participants"
 
 ```{r echo=TRUE, eval=TRUE}
-dif_scores <- dplyr::left_join(dec_off_task, sparse_off_task, by="id") %>%
-  mutate(diff = (1-tot3.y) -(1-tot3.x))
+off_task_env <- off_task %>%
+  na.omit() %>%
+  filter(category=="envr") %>%
+  group_by(sparse.decorated, id) %>%
+  summarize(difference=mean(score))
 
-ggplot(dif_scores, aes(x=diff)) + geom_histogram()
+dif_scores <- tidyr::spread(off_task_env, sparse.decorated, difference) %>%
+  mutate(dif=decorated-sparse)
+
+# create visualiztion of this using dot plot
+ggplot(off_task_env) + geom_path(aes(x=difference, y=id), 
+                                 arrow = arrow(length = unit(1.5, "mm"), type = "closed"))
 
 dif_scores %>%
-  summarize(mean=mean(diff),
-            sd = sd(diff),
-            minimum = min(diff),
-            maximum = max(diff))
+  summarize(mean=mean(dif),
+            sd = sd(dif),
+            minimum = min(dif),
+            maximum = max(dif))
 ```
-Interestingly, we don't reprroduce their resutls here.not sure what's going on...
 
+Nice, we see that we've repicated the authors results, as well as added an **extension** plot to nicely illustrate that for ALL subjects we see an increase in time spent attenting to the environment in the deocrated classroom.
 
-Next the autors compare time off task faceted by subtype. They find the folliwng: "In the sparse-classroom condition, the children
+Next the authors compare time off task faceted by subtype of distraction. They find the folliwng: "In the sparse-classroom condition, the children
 spent only 3.21% of instructional time engaged in environmental distractions, whereas in the decoratedclassroom condition, they spent 20.56% of instructional time engaged in environmental distractions; this difference was significant, paired-sample t(22) = 8.78, p < .0001, and the effect was large, Cohen’s d = −2.60."
 
 We confrim:
