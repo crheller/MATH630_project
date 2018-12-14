@@ -1,0 +1,90 @@
+Summary Data File Tab,X__1,data_type
+Variable,Description,numerical continuous
+Pre-Test-Sparse-Classroom,Average pre-test scores for lessons taught in the Sparse classroom condition,numerical continuous
+Pre-Test-Decorated Classroom,Average pre-test scores for lessons taught in the Decorated classroom condition,numerical continuous
+Post-Test-Sparse-Classroom,Average post-test scores for lessons taught in the Sparse classroom condition,numerical continuous
+Post-Test-Decorated Classroom,Average post-test scores for lessons taught in the Decorated classroom condition,numerical continuous
+Total Post-Test,Average post-test scores across the Sparse and Decorated classroom conditions,numerical continuous
+Sparse-TimeSelfDistr,Average proportion of time children spent engaging in self-distractions in the Sparse classroom condition,numerical continuous
+Sparse-TimePeerDistr,Average proportion of time children spent engaging in peer distractions in the Sparse classroom condition,numerical continuous
+Sparse-TimeEnvirDistr,Average proportion of time children spent engaging in environment distractions in the Sparse classroom condition,numerical continuous
+Sparse-TimeOtherDistr,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Sparse classroom condition",numerical continuous
+Sparse-TotalTimeOffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Sparse classroom,numerical continuous
+Decorated-TimeSelfDistr,Average proportion of time children spent engaging in self-distractions in the Decorated classroom condition,numerical continuous
+Decorated-TimePeerDistr,Average proportion of time children spent engaging in peer distractions in the Decorated classroom condition,numerical continuous
+Decorated-TimeEnvirDistr,Average proportion of time children spent engaging in environment distractions in the Decorated classroom condition,numerical continuous
+Decorated-TimeOtherDistr,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Decorated classroom condition",numerical continuous
+Decorated-TotalTimeOffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Decorated classroom,numerical continuous
+TotalTimeOffTask,Average proportion of time children spent off-task across both the Sparse and the Decorated classroom conditions,numerical continuous
+NA,NA,numerical continuous
+NA,NA,numerical continuous
+Pre-Test Scores By Lesson Tab,NA,numerical continuous
+Variable,Description,numerical continuous
+Pre-Test 'Plate Tectonics' Sparse Classroom,Average pre-test scores for the 'Plate Tectonics' lesson taught in the Sparse classroom condition,numerical continuous
+Pre-Test 'Volcanoes' Sparse Classroom,Average pre-test scores for the 'Volcanoes' lesson taught in the Sparse classroom condition,numerical continuous
+Pre-Test 'Bugs' Sparse Classroom,Average pre-test scores for the 'Bugs' lesson taught in the Sparse classroom condition,numerical continuous
+Total Pre-Test Scores Sparse Classroom,"Average pre-test scores for all lessons taught in the Sparse classroom condition  ('Plate Tectonics', 'Volcanoes', 'Bugs')",numerical continuous
+Pre-Test 'Stone Tools' Decorated Classroom,Average pre-test scores for the 'Stone Tools' lesson taught in the Decorated classroom condition,numerical continuous
+Pre-Test 'Solar System' Decorated Classroom,Average pre-test scores for the 'Solar System' lesson taught in the Decorated classroom condition,numerical continuous
+Pre-Test 'Flight'  Decorated Classroom,Average pre-test scores for the 'Flight' lesson taught in the Decorated classroom condition,numerical continuous
+Total Pre-Test Scores Decorated Classroom,"Average pre-test scores for all lessons taught in the Decorated classroom condition ('Stone Tools', 'Solar System', 'Flight')",numerical continuous
+NA,NA,numerical continuous
+NA,NA,numerical continuous
+Post-Test Scores By Lesson Tab,NA,numerical continuous
+Variable,Description,numerical continuous
+Post-Test 'Plate Tectonics' Sparse Classroom,Average post-test scores for the 'Plate Tectonics' lesson taught in the Sparse classroom condition,numerical continuous
+Post-Test 'Volcanoes' Sparse Classroom,Average post-test scores for the 'Volcanoes' lesson taught in the Sparse classroom condition,numerical continuous
+Post-Test 'Bugs' Sparse Classroom,Average post-test scores for the 'Bugs' lesson taught in the Sparse classroom condition,numerical continuous
+Total Post-Test Scores Sparse Classroom,"Average post-test scores for all lessons taught in the Sparse classroom condition  ('Plate Tectonics', 'Volcanoes', 'Bugs')",numerical continuous
+Post-Test 'Stone Tools' Decorated Classroom,Average post-test scores for the 'Stone Tools' lesson taught in the Decorated classroom condition,numerical continuous
+Post-Test 'Solar System' Decorated Classroom,Average post-test scores for the 'Solar System' lesson taught in the Decorated classroom condition,numerical continuous
+Post-Test 'Flight'  Decorated Classroom,Average post-test scores for the 'Flight' lesson taught in the Decorated classroom condition,numerical continuous
+Total Post-Test Scores Decorated Classroom,"Average post-test scores for all lessons taught in the Decorated classroom condition ('Stone Tools', 'Solar System', 'Flight')",numerical continuous
+NA,NA,numerical continuous
+NA,NA,numerical continuous
+TOT by Lesson Sparse Condition Tab,NA,numerical continuous
+Variable,Description,numerical continuous
+PlateTec_Self,Average proportion of time children spent engaging in self-distractions in the Sparse classroom condition during the 'Plate Tectonics' lesson,numerical continuous
+PlateTec_Peer,Average proportion of time children spent engaging in peer distractions in the Sparse classroom condition during the 'Plate Tectonics' lesson,numerical continuous
+PlateTec_Environment,Average proportion of time children spent engaging in environment distractions in the Sparse classroom condition during the 'Plate Tectonics' lesson,numerical continuous
+PlateTec_Other,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Sparse classroom condition during the 'Plate Tectonics' lesson",numerical continuous
+PlateTec_Total Time OffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Sparse classroom during the 'Plate Tectonics' lesson,numerical continuous
+Volcanoes_Self,Average proportion of time children spent engaging in self-distractions in the Sparse classroom condition during the 'Volcanoes' lesson,numerical continuous
+Volcanoes_Peer,Average proportion of time children spent engaging in peer distractions in the Sparse classroom condition during the 'Volcanoes' lesson,numerical continuous
+Volcanoes_Environment,Average proportion of time children spent engaging in environment distractions in the Sparse classroom condition during the 'Volcanoes' lesson,numerical continuous
+Volcanoes_Other,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Sparse classroom condition during the 'Volcanoes' lesson",numerical continuous
+Volcanoes_Total Time OffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Sparse classroom during the 'Volcanoes' lesson,numerical continuous
+Bugs_Self,Average proportion of time children spent engaging in self-distractions in the Sparse classroom condition during the 'Bugs' lesson,numerical continuous
+Bugs_Peer,Average proportion of time children spent engaging in peer distractions in the Sparse classroom condition during the 'Bugs' lesson,numerical continuous
+Bugs_Environment,Average proportion of time children spent engaging in environment distractions in the Sparse classroom condition during the 'Bugs' lesson,numerical continuous
+Bugs_Other,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Sparse classroom condition during the 'Bugs' lesson",numerical continuous
+Bugs_Total Time Off-Task,Average proportion of time children spent off-task (combined across all off-task categories above) in the Sparse classroom during the 'Bugs' lesson,numerical continuous
+Sparse_Self,Average proportion of time children spent engaging in self-distractions in the Sparse classroom condition,numerical continuous
+Sparse_Peer,Average proportion of time children spent engaging in peer distractions in the Sparse classroom condition,numerical continuous
+Sparse_Environment,Average proportion of time children spent engaging in environment distractions in the Sparse classroom condition,numerical continuous
+Sparse_Other,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Sparse classroom condition",numerical continuous
+Sparse_Total Time OffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Sparse classroom condition,numerical continuous
+NA,NA,numerical continuous
+NA,NA,numerical continuous
+TOT by Lesson Decorated Cond. Tab,NA,numerical continuous
+Variable,Description,numerical continuous
+Stone Tools_Self,Average proportion of time children spent engaging in self-distractions in the Decorated classroom condition during the 'Stone Tools' lesson,numerical continuous
+Stone Tools_Peer,Average proportion of time children spent engaging in peer distractions in the Decorated classroom condition during the 'Stone Tools' lesson,numerical continuous
+Stone Tools_Environment,Average proportion of time children spent engaging in environment distractions in the Decorated classroom condition during the 'Stone Tools' lesson,numerical continuous
+Stone Tools_Other,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Decorated classroom condition during the 'Stone Tools' lesson",numerical continuous
+Stone Tools_Total Time OffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Decorated classroom during the 'Stone Tools' lesson,numerical continuous
+Solar System_Self,Average proportion of time children spent engaging in self-distractions in the Decorated classroom condition during the 'Solar System' lesson,numerical continuous
+Solar System_Peer,Average proportion of time children spent engaging in peer distractions in the Decorated classroom condition during the 'Solar System' lesson,numerical continuous
+Solar System_Environment,Average proportion of time children spent engaging in environment distractions in the Decorated classroom condition during the 'Solar System' lesson,numerical continuous
+Solar System_Other,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Decorated classroom condition during the 'Solar System' lesson",numerical continuous
+Solar System_Total Time OffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Decorated classroom during the 'Solar System' lesson,numerical continuous
+Flight_Self,Average proportion of time children spent engaging in self-distractions in the Decorated classroom condition during the 'Flight' lesson,numerical continuous
+Flight_Peer,Average proportion of time children spent engaging in peer distractions in the Decorated classroom condition during the 'Flight' lesson,numerical continuous
+Flight_Environment,Average proportion of time children spent engaging in environment distractions in the Decorated classroom condition during the 'Flight' lesson,numerical continuous
+Flight_Other,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Decorated classroom condition during the 'Flight' lesson",numerical continuous
+Flight_Total Time OffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Decorated classroom during the 'Flight' lesson,numerical continuous
+Decorated_Self,Average proportion of time children spent engaging in self-distractions in the Decorated classroom condition,numerical continuous
+Decorated_Peer,Average proportion of time children spent engaging in peer distractions in the Decorated classroom condition,numerical continuous
+Decorated_Environment,Average proportion of time children spent engaging in environment distractions in the Decorated classroom condition,numerical continuous
+Decorated_Other,"Average proportion of time children spent engaging in 'other' (i.e., none of the above) distractions in the Decorated classroom condition",numerical continuous
+Decorated_Total Time OffTask,Average proportion of time children spent off-task (combined across all off-task categories above) in the Decorated classroom condition,numerical continuous
